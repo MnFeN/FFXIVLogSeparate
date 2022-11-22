@@ -97,7 +97,7 @@ while 1:
 
 for i in range(len(fights)):
     print(i, fights[i][0], fights[i][1], fights[i][2], fights[i][4], fights[i][6], fights[i][5], fights[i][3], fights[i][7], '/', fights[i][9], fights[i][8], '/', fights[i][10])
-print(fights[24],'??')
+
 fightIndexes = []
 fightRawIndexes = re.split(',|，', input('Input all indexes of fights you want to extract. e.g. 0-4,7, 10 - 15 , 20\n'))
 for i in range(len(fightRawIndexes)):
@@ -124,8 +124,7 @@ file.seek(0,0)
 output_file = open(filename[:-4]+'_extract.log','w', encoding='UTF-8')
 lineCount = 0
 switch = 1
-print(onLines)
-print(offLines)
+
 while 1:
     line = file.readline()
     if not line:
