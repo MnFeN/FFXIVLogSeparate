@@ -15,16 +15,17 @@ def getTimestamp(line):
     return timestamp
 
 def selectAll():
-    isSelect = checkVars[0].get()
-    for index in range(1,len(checkVars)):
+    isSelect = checkAllVar.get()
+    for index in range(len(checkVars)):
         checkVars[index].set(isSelect)
 
 def readLogFile():
-    global filename, file, fights
+    global filename, file, fights, all01Lines
     filename = askopenfilename(title="Select the log file", filetypes=[("日志文件", ".log")])
     file = open(filename, encoding='UTF-8')
     fights = []
-    
+    all01Lines = []
+
     lineCount = 0
     selfID = ''
     mapName = ''
@@ -38,7 +39,7 @@ def readLogFile():
     
     initialize()
     
-    while 1:
+    while 1: #逐行读取
         line = file.readline()
         if not line:
             break
@@ -59,6 +60,7 @@ def readLogFile():
         if re_map:
             mapName = re_map.group('mapName')
             startLine01 = lineCount
+            all01Lines.append(lineCount)
             continue
 
         #self 02|time|selfID|...
@@ -104,13 +106,13 @@ def readLogFile():
     for widget in tableFrame.winfo_children():
         widget.destroy()
 
-    global table, checkVars
+    global table
     table=[[]]
-    checkVars = []
 
     #标题行
-    checkVars.append(tk.IntVar())
-    table[0].append(ttk.Checkbutton(tableFrame, text='', variable=checkVars[0],command=selectAll))
+    global checkAllVar
+    checkAllVar = tk.IntVar()
+    table[0].append(ttk.Checkbutton(tableFrame, text='',variable=checkAllVar,command=selectAll))
     table[0].append(ttk.Label(tableFrame, text='No.'))
     table[0].append(ttk.Label(tableFrame, text='Start'))
     table[0].append(ttk.Label(tableFrame, text='Duration'))
@@ -119,7 +121,10 @@ def readLogFile():
     table[0].append(ttk.Label(tableFrame, text='D -'))
     for i in range(len(table[0])):
         table[0][i].grid(row=0,column=i,padx=10,pady=5)
+    
     #下面每行
+    global checkVars
+    checkVars = []
     for i in range(len(fights)):
         table.append([])
         isWipeColor = ['#d16969','#4ec9b0'][fights[i][4]] # wipe=red, kill=green
@@ -135,48 +140,51 @@ def readLogFile():
             table[-1][col].grid(row=i+1,column=col,padx=10,pady=5)
 
 def saveLogFile():
-    fightIndexes = []
-    fightRawIndexes = re.split(',|，', input('Input all indexes of fights you want to extract. e.g. 0-4,7, 10 - 15 , 20\n'))
-    for i in range(len(fightRawIndexes)):
-        fightRawIndexes[i] = fightRawIndexes[i].replace(' ','')
-        re_fightIndex = re.match(r'(\d+)(?:[-–−—~](\d+))?',fightRawIndexes[i])
-        print(re_fightIndex.group(1),re_fightIndex.group(2))
-        if re_fightIndex:
-            if re_fightIndex.group(2) is None:
-                fightIndexes.append(int(fightRawIndexes[i]))
-            else:
-                for j in range(int(re_fightIndex.group(1)),int(re_fightIndex.group(2))+1):
-                    fightIndexes.append(j)
-        else:
-            print(fightRawIndexes[i] + ' is not a number or a range.')
-
-    onLines = []
-    offLines = []
+    onLines = []    #要导出的段落的起始行
+    offLines = []   #要导出的段落的结束行
+    on01Lines = []  #所有包含需要导出内容的01行
+    off01Lines = [] #所有不包含需要导出内容的01行
     for i in range(len(fights)):
-        if i not in fightIndexes:
+        if checkVars[i].get() == 1: #要导出的段落
+            on01Lines.append(fights[i][10])
+        else:                       #不要导出的段落
             offLines.append(fights[i][0])
             onLines.append(fights[i][1])
-
-    file.seek(0,0)
+    for item in all01Lines:
+        if item not in on01Lines:
+            off01Lines.append(item)
+    
+    file.seek(0,0)  #返回文件开头
     output_file = open(filename[:-4]+'_extract.log','w', encoding='UTF-8')
     lineCount = 0
-    switch = 1
+    switch = 1      #是否将本行替换为站位行（1=保留）   如果本段不需要导出 则以00行代替全部内容
+    switch01 = 0    #是否直接删除本行内容　（1=保留）   如果两个01行之间没有需要导出的日志 则删除其间全部内容
 
     while 1:
         line = file.readline()
         if not line:
             break
         lineCount += 1
+
+        #是否删除：
+        if lineCount in on01Lines:
+            switch01 = 1
+        elif lineCount in off01Lines:
+            switch01 = 0
+        if switch01 == 0:
+            continue
+        
+        #是否占位替换：
         if lineCount in offLines:
             switch = 0
         if switch == 1:
             output_file.write(line)
-        if switch == 0:
-            output_file.write('00|' + line[3:].lstrip('|')[:35] + '0038||trash fight|0000000000000000\n')
+        else:
+            output_file.write('00|' + line[3:].lstrip('|')[:34] + '0038||trash fight|0000000000000000\n')
         if lineCount in onLines:
             switch = 1
-    file.close()
     output_file.close()
+    msgbox.showinfo(title='', message = 'Exported as '+filename[:-4]+'_extract.log')
 
 ctypes.windll.shcore.SetProcessDpiAwareness(1)                  #使用程序自身的dpi适配
 ScaleFactor=ctypes.windll.shcore.GetScaleFactorForDevice(0)     #获取屏幕的缩放因子
