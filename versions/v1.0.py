@@ -102,25 +102,25 @@ def readLogFile():
                     mapName, selfDeathCount, selfDmgdownCount, totalDeathCount, totalDmgdownCount, startLine01])
             continue
     
-    #清空下方的表格Frame
-    for widget in tableFrame.winfo_children():
-        widget.destroy()
-
-    global table
+    #清空下方的表格Canvas
+    #for widget in tableCanvas.winfo_children():
+        #widget.destroy()
+    
+    global table, vbar, tableCanvas
     table=[[]]
 
     #标题行
     global checkAllVar
     checkAllVar = tk.IntVar()
-    table[0].append(ttk.Checkbutton(tableFrame, text='',variable=checkAllVar,command=selectAll))
-    table[0].append(ttk.Label(tableFrame, text='No.'))
-    table[0].append(ttk.Label(tableFrame, text='Start'))
-    table[0].append(ttk.Label(tableFrame, text='Duration'))
-    table[0].append(ttk.Label(tableFrame, text='Map'))
-    table[0].append(ttk.Label(tableFrame, text='D'))
-    table[0].append(ttk.Label(tableFrame, text='D -'))
+    table[0].append(ttk.Checkbutton(tableCanvas, text='',variable=checkAllVar,command=selectAll))
+    table[0].append(ttk.Label(tableCanvas, text='No.'))
+    table[0].append(ttk.Label(tableCanvas, text='Start Time'))
+    table[0].append(ttk.Label(tableCanvas, text='Duration'))
+    table[0].append(ttk.Label(tableCanvas, text='Raid Name'))
+    table[0].append(ttk.Label(tableCanvas, text='   Death  \nSelf/Party'))
+    table[0].append(ttk.Label(tableCanvas, text='   Dmg ↓  \nSelf/Party'))
     for i in range(len(table[0])):
-        table[0][i].grid(row=0,column=i,padx=10,pady=5)
+        table[0][i].grid(row=0,column=i,stick='s',padx=int(screen_y/100),pady=5)
     
     #下面每行
     global checkVars
@@ -129,15 +129,20 @@ def readLogFile():
         table.append([])
         isWipeColor = ['#d16969','#4ec9b0'][fights[i][4]] # wipe=red, kill=green
         checkVars.append(tk.IntVar())
-        table[-1].append(ttk.Checkbutton(tableFrame, text='', variable=checkVars[-1]))         #table[row][0]: checkbox
-        table[-1].append(ttk.Label(tableFrame,text=str(i+1),foreground=isWipeColor))           #table[row][1]: index
-        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][2]),foreground=isWipeColor))  #table[row][2]: startTime
-        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][3]),foreground=isWipeColor))  #table[row][3]: duration
-        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][5])))                         #table[row][4]: map
-        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][6])+'/'+str(fights[i][8])))   #table[row][5]: d
-        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][7])+'/'+str(fights[i][9])))   #table[row][6]: d-
+        table[-1].append(ttk.Checkbutton(tableCanvas, text='', variable=checkVars[-1]))         #table[row][0]: checkbox
+        table[-1].append(ttk.Label(tableCanvas,text=str(i+1),foreground=isWipeColor))           #table[row][1]: index
+        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][2]),foreground=isWipeColor))  #table[row][2]: startTime
+        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][3]),foreground=isWipeColor))  #table[row][3]: duration
+        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][5])))                         #table[row][4]: map
+        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][6])+'/'+str(fights[i][8])))   #table[row][5]: d
+        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][7])+'/'+str(fights[i][9])))   #table[row][6]: d-
         for col in range(len(table[-1])):
-            table[-1][col].grid(row=i+1,column=col,padx=10,pady=5)
+            table[-1][col].grid(row=i+1,column=col,padx=int(screen_y/100),pady=5)
+    
+    vbar=ttk.Scrollbar(window,orient='vertical')
+    vbar.place(relx=1,rely=0.12,relheight=0.85,anchor='ne')
+    vbar.config(command=tableCanvas.yview)
+    tableCanvas.config(yscrollcommand=vbar.set)
 
 def saveLogFile():
     onLines = []    #要导出的段落的起始行
@@ -196,12 +201,15 @@ screen_x = window.winfo_screenwidth()
 screen_y = window.winfo_screenheight()
 window.geometry('%dx%d+%d+%d' % (int(screen_x*0.7), int(screen_y*0.7), int(screen_x*0.15), int(screen_y*0.12)))
 
-button_import = ttk.Button(window, text='Import Log', command=readLogFile)
-button_export = ttk.Button(window, text='Export Log', command=saveLogFile)
-button_import.place(relx=0.5-0.15,relwidth=0.15,rely=0.05,relheight=0.06,anchor='center')
-button_export.place(relx=0.5+0.15,relwidth=0.15,rely=0.05,relheight=0.06,anchor='center')
+ttk.Style().configure(".", font=("微软雅黑", str(int(screen_y/150))))
 
-tableFrame = ttk.Frame(window, borderwidth=1)
-tableFrame.place(relx=0.5,rely=0.55,anchor='center')
+button_import = ttk.Button(window,text='Import Log',padding=int(screen_y/150),command=readLogFile)
+button_export = ttk.Button(window,text='Export Log',padding=int(screen_y/150),command=saveLogFile)
+
+button_import.place(relx=0.5-0.15,rely=0.06,anchor='center')
+button_export.place(relx=0.5+0.15,rely=0.06,anchor='center')
+
+tableCanvas = tk.Canvas(window)
+tableCanvas.place(relx=0.5,rely=0.12,relheight=0.85,anchor='n')
 
 window.mainloop()
