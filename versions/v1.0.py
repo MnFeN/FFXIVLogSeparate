@@ -8,6 +8,7 @@ from tkinter import ttk
 import tkinter.messagebox as msgbox   
 from tkinter.filedialog import (askopenfilename, asksaveasfilename)
 import ctypes
+import webbrowser
 
 def getTimestamp(line):
     timeArray = time.strptime(line[3:].lstrip('|')[:19], "%Y-%m-%dT%H:%M:%S") # 开头日志行类型为2-3位
@@ -103,12 +104,13 @@ def readLogFile():
             continue
     
     global table
-    table=[[]]
 
     #清空下方的表格Canvas
     for row in table:
         for widget in row:
             widget.destroy()
+
+    table=[[]]
 
     #生成标题行
     global checkAllVar
@@ -128,7 +130,7 @@ def readLogFile():
     checkboxVars = []
     for i in range(len(fights)):
         table.append([])
-        isWipeColor = ['#d16969','#4ec9b0'][fights[i][4]] # wipe=red, kill=green
+        isWipeColor = ['#d65','#4ca'][fights[i][4]] # wipe=red, kill=green
         checkboxVars.append(tk.IntVar())
         table[-1].append(ttk.Checkbutton(tableFrame,text='',variable=checkboxVars[-1]))        #table[row][0]: checkbox
         table[-1].append(ttk.Label(tableFrame,text=str(i+1),foreground=isWipeColor))           #table[row][1]: index
@@ -139,6 +141,10 @@ def readLogFile():
         table[-1].append(ttk.Label(tableFrame,text=str(fights[i][7])+'/'+str(fights[i][9])))   #table[row][6]: d-
         for col in range(len(table[-1])):
             table[-1][col].grid(row=i+1,column=col,padx=int(screen_y/100),pady=5)
+    
+    for row in table:
+        for widget in row:
+            widget.bind('<MouseWheel>',processWheel)
 
 def saveLogFile():
     export_path = asksaveasfilename(defaultextension='.log', title="Select the log file", filetypes=[("Log File", ".log")])
@@ -197,8 +203,10 @@ window.tk.call('tk', 'scaling', ScaleFactor/100)                #设置程序缩
 screen_x = window.winfo_screenwidth()
 screen_y = window.winfo_screenheight()
 window.geometry('%dx%d+%d+%d' % (int(screen_x*0.7), int(screen_y*0.7), int(screen_x*0.15), int(screen_y*0.12)))
+window.title('FFXIVLogSeparate v' + __version__ + ' by ' + __author__)
 
 ttk.Style().configure(".", font=("微软雅黑", str(int(screen_y/150))))
+ttk.Style().configure("update.TLabel", font=("微软雅黑", str(int(screen_y/180))), foreground='#8ae')
 
 button_import = ttk.Button(window,text='Import Log',padding=int(screen_y/150),command=readLogFile)
 button_export = ttk.Button(window,text='Export Log',padding=int(screen_y/150),command=saveLogFile)
@@ -206,22 +214,40 @@ button_export = ttk.Button(window,text='Export Log',padding=int(screen_y/150),co
 button_import.place(relx=0.5-0.15,rely=0.06,anchor='center')
 button_export.place(relx=0.5+0.15,rely=0.06,anchor='center')
 
+updateLabel = ttk.Label(window,text='[Check for update]',style='update.TLabel')
+updateLabel.place(relx=0.5,rely=0.98,anchor='s')
+def checkUpdate(event):
+    webbrowser.open("https://github.com/MnFeN/FFXIVLogSeparate/releases", new=0) 
+updateLabel.bind("<Button-1>",checkUpdate)
+
+table = [[]]
 outFrame = ttk.Frame(window)
-outFrame.place(relx=0.5,rely=0.12,relheight=0.78,relwidth=1,anchor='n')
+outFrame.place(relx=0.5,rely=0.12,relheight=0.76,relwidth=1,anchor='n')
 tableCanvas = tk.Canvas(outFrame)
 tableFrame = ttk.Frame(tableCanvas)
-vbar=ttk.Scrollbar(outFrame,orient='vertical',command=tableCanvas.yview)
+vbar = ttk.Scrollbar(outFrame,orient='vertical',command=tableCanvas.yview)
 tableCanvas.configure(yscrollcommand=vbar.set)
+'''
+outFrame -> tableCanvas -> tableFrame -> [lines]
+         -> vbar
+'''
 
 vbar.pack(side="right", fill="y")
 tableCanvas.pack(side="left", fill="both", expand=True)
+
 window.update()
-
 tableCanvas.create_window((int(tableCanvas.winfo_width()/2),0), window=tableFrame, anchor="n")
-
-def onFrameConfigure(canvas):
+def onFrameConfigure(canvas):   # [1]
     canvas.configure(scrollregion=canvas.bbox("all"))
-
 tableFrame.bind("<Configure>", lambda event, tableCanvas=tableCanvas: onFrameConfigure(tableCanvas))
 
+def processWheel(event):        # [2]
+    tableCanvas.yview_scroll(int(-event.delta/100),'units')
+tableFrame.bind('<MouseWheel>',processWheel)
+tableCanvas.bind('<MouseWheel>',processWheel)
+
 window.mainloop()
+
+# References:
+# [1] canvas嵌套的frame添加滚动条：https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
+# [2] 鼠标滚轮滚动canvas：https://www.zhihu.com/question/385891705
