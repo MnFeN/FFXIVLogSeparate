@@ -16,15 +16,15 @@ def getTimestamp(line):
 
 def selectAll():
     isSelect = checkAllVar.get()
-    for index in range(len(checkVars)):
-        checkVars[index].set(isSelect)
+    for index in range(len(checkboxVars)):
+        checkboxVars[index].set(isSelect)
 
 def readLogFile():
-    global filename, file, fights, all01Lines
-    filename = askopenfilename(title="Select the log file", filetypes=[("日志文件", ".log")])
-    file = open(filename, encoding='UTF-8')
-    fights = []
-    all01Lines = []
+    global import_path, import_file, fights, all01Lines
+    import_path = askopenfilename(title="Select the log file", filetypes=[("Log File", ".log")])
+    import_file = open(import_path, encoding='UTF-8')
+    fights = []         # 2d-list，每一场的相关信息
+    all01Lines = []     # 所有 01 日志行的行序数
 
     lineCount = 0
     selfID = ''
@@ -40,7 +40,7 @@ def readLogFile():
     initialize()
     
     while 1: #逐行读取
-        line = file.readline()
+        line = import_file.readline()
         if not line:
             break
         lineCount += 1
@@ -102,55 +102,52 @@ def readLogFile():
                     mapName, selfDeathCount, selfDmgdownCount, totalDeathCount, totalDmgdownCount, startLine01])
             continue
     
-    #清空下方的表格Canvas
-    #for widget in tableCanvas.winfo_children():
-        #widget.destroy()
-    
-    global table, vbar, tableCanvas
+    global table
     table=[[]]
 
-    #标题行
+    #清空下方的表格Canvas
+    for row in table:
+        for widget in row:
+            widget.destroy()
+
+    #生成标题行
     global checkAllVar
     checkAllVar = tk.IntVar()
-    table[0].append(ttk.Checkbutton(tableCanvas, text='',variable=checkAllVar,command=selectAll))
-    table[0].append(ttk.Label(tableCanvas, text='No.'))
-    table[0].append(ttk.Label(tableCanvas, text='Start Time'))
-    table[0].append(ttk.Label(tableCanvas, text='Duration'))
-    table[0].append(ttk.Label(tableCanvas, text='Raid Name'))
-    table[0].append(ttk.Label(tableCanvas, text='   Death  \nSelf/Party'))
-    table[0].append(ttk.Label(tableCanvas, text='   Dmg ↓  \nSelf/Party'))
+    table[0].append(ttk.Checkbutton(tableFrame, text='',variable=checkAllVar,command=selectAll))
+    table[0].append(ttk.Label(tableFrame, text='No.'))
+    table[0].append(ttk.Label(tableFrame, text='Start Time'))
+    table[0].append(ttk.Label(tableFrame, text='Duration'))
+    table[0].append(ttk.Label(tableFrame, text='Raid Name'))
+    table[0].append(ttk.Label(tableFrame, text='   Death  \nSelf/Party'))
+    table[0].append(ttk.Label(tableFrame, text='   Dmg ↓  \nSelf/Party'))
     for i in range(len(table[0])):
         table[0][i].grid(row=0,column=i,stick='s',padx=int(screen_y/100),pady=5)
     
-    #下面每行
-    global checkVars
-    checkVars = []
+    #生成下面每行
+    global checkboxVars
+    checkboxVars = []
     for i in range(len(fights)):
         table.append([])
         isWipeColor = ['#d16969','#4ec9b0'][fights[i][4]] # wipe=red, kill=green
-        checkVars.append(tk.IntVar())
-        table[-1].append(ttk.Checkbutton(tableCanvas, text='', variable=checkVars[-1]))         #table[row][0]: checkbox
-        table[-1].append(ttk.Label(tableCanvas,text=str(i+1),foreground=isWipeColor))           #table[row][1]: index
-        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][2]),foreground=isWipeColor))  #table[row][2]: startTime
-        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][3]),foreground=isWipeColor))  #table[row][3]: duration
-        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][5])))                         #table[row][4]: map
-        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][6])+'/'+str(fights[i][8])))   #table[row][5]: d
-        table[-1].append(ttk.Label(tableCanvas,text=str(fights[i][7])+'/'+str(fights[i][9])))   #table[row][6]: d-
+        checkboxVars.append(tk.IntVar())
+        table[-1].append(ttk.Checkbutton(tableFrame,text='',variable=checkboxVars[-1]))        #table[row][0]: checkbox
+        table[-1].append(ttk.Label(tableFrame,text=str(i+1),foreground=isWipeColor))           #table[row][1]: index
+        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][2]),foreground=isWipeColor))  #table[row][2]: startTime
+        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][3]),foreground=isWipeColor))  #table[row][3]: duration
+        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][5])))                         #table[row][4]: map
+        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][6])+'/'+str(fights[i][8])))   #table[row][5]: d
+        table[-1].append(ttk.Label(tableFrame,text=str(fights[i][7])+'/'+str(fights[i][9])))   #table[row][6]: d-
         for col in range(len(table[-1])):
             table[-1][col].grid(row=i+1,column=col,padx=int(screen_y/100),pady=5)
-    
-    vbar=ttk.Scrollbar(window,orient='vertical')
-    vbar.place(relx=1,rely=0.12,relheight=0.85,anchor='ne')
-    vbar.config(command=tableCanvas.yview)
-    tableCanvas.config(yscrollcommand=vbar.set)
 
 def saveLogFile():
+    export_path = asksaveasfilename(defaultextension='.log', title="Select the log file", filetypes=[("Log File", ".log")])
     onLines = []    #要导出的段落的起始行
     offLines = []   #要导出的段落的结束行
     on01Lines = []  #所有包含需要导出内容的01行
     off01Lines = [] #所有不包含需要导出内容的01行
     for i in range(len(fights)):
-        if checkVars[i].get() == 1: #要导出的段落
+        if checkboxVars[i].get() == 1: #要导出的段落
             on01Lines.append(fights[i][10])
         else:                       #不要导出的段落
             offLines.append(fights[i][0])
@@ -159,14 +156,14 @@ def saveLogFile():
         if item not in on01Lines:
             off01Lines.append(item)
     
-    file.seek(0,0)  #返回文件开头
-    output_file = open(filename[:-4]+'_extract.log','w', encoding='UTF-8')
+    import_file.seek(0,0)  #返回文件开头
+    export_file = open(export_path, 'w', encoding='UTF-8')
     lineCount = 0
     switch = 1      #是否将本行替换为站位行（1=保留）   如果本段不需要导出 则以00行代替全部内容
     switch01 = 0    #是否直接删除本行内容　（1=保留）   如果两个01行之间没有需要导出的日志 则删除其间全部内容
 
-    while 1:
-        line = file.readline()
+    while 1:    #转存每行
+        line = import_file.readline()
         if not line:
             break
         lineCount += 1
@@ -183,13 +180,13 @@ def saveLogFile():
         if lineCount in offLines:
             switch = 0
         if switch == 1:
-            output_file.write(line)
+            export_file.write(line)
         else:
-            output_file.write('00|' + line[3:].lstrip('|')[:34] + '0038||trash fight|0000000000000000\n')
+            export_file.write('00|' + line[3:].lstrip('|')[:34] + '0038||trash fight|0000000000000000\n')
         if lineCount in onLines:
             switch = 1
-    output_file.close()
-    msgbox.showinfo(title='', message = 'Exported as '+filename[:-4]+'_extract.log')
+    export_file.close()
+    msgbox.showinfo(title='', message = 'Exported as ' + export_path)
 
 ctypes.windll.shcore.SetProcessDpiAwareness(1)                  #使用程序自身的dpi适配
 ScaleFactor=ctypes.windll.shcore.GetScaleFactorForDevice(0)     #获取屏幕的缩放因子
@@ -209,7 +206,22 @@ button_export = ttk.Button(window,text='Export Log',padding=int(screen_y/150),co
 button_import.place(relx=0.5-0.15,rely=0.06,anchor='center')
 button_export.place(relx=0.5+0.15,rely=0.06,anchor='center')
 
-tableCanvas = tk.Canvas(window)
-tableCanvas.place(relx=0.5,rely=0.12,relheight=0.85,anchor='n')
+outFrame = ttk.Frame(window)
+outFrame.place(relx=0.5,rely=0.12,relheight=0.78,relwidth=1,anchor='n')
+tableCanvas = tk.Canvas(outFrame)
+tableFrame = ttk.Frame(tableCanvas)
+vbar=ttk.Scrollbar(outFrame,orient='vertical',command=tableCanvas.yview)
+tableCanvas.configure(yscrollcommand=vbar.set)
+
+vbar.pack(side="right", fill="y")
+tableCanvas.pack(side="left", fill="both", expand=True)
+window.update()
+
+tableCanvas.create_window((int(tableCanvas.winfo_width()/2),0), window=tableFrame, anchor="n")
+
+def onFrameConfigure(canvas):
+    canvas.configure(scrollregion=canvas.bbox("all"))
+
+tableFrame.bind("<Configure>", lambda event, tableCanvas=tableCanvas: onFrameConfigure(tableCanvas))
 
 window.mainloop()
