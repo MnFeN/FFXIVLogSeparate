@@ -1,1 +1,1 @@
-![image](https://github.com/MnFeN/FFXIVLogSeparate/assets/85232361/7ec66b8b-3f91-411c-96f7-66e64f66bee5)
+<img width="1517" height="1071" alt="image" src="https://github.com/user-attachments/assets/711d5457-fbd0-4570-99c1-3fd41be4c0be" />
